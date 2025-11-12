@@ -1,5 +1,5 @@
 name: solana_client
-description: "A new Flutter package project."
+description: "A simple client for interacting with the Solana blockchain."
 version: 0.0.1
 homepage: "https://mikemiller.design"
 
