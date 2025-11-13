@@ -193,8 +193,6 @@ class SolanaClient {
   ///
   /// [to] - The recipient's Solana wallet address (base58 encoded)
   /// [amount] - The amount of SOL to send (will be converted to lamports)
-  /// [mnemonic] - The mnemonic seed phrase of the sender (should match the
-  ///              client's mnemonic for consistency)
   ///
   /// Returns a [TransactionResponse] containing:
   /// - `status`: 'Done' on success, 'Error' on failure
@@ -205,13 +203,11 @@ class SolanaClient {
   /// final response = await client.sendSolana(
   ///   to: 'RecipientAddress...',
   ///   amount: 1.5,
-  ///   mnemonic: 'your mnemonic phrase',
   /// );
   /// ```
   Future<TransactionResponse> sendSolana({
     required String to,
     required num amount,
-    required String mnemonic,
   }) async {
     try {
       // Derive the sender's keypair from the mnemonic

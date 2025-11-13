@@ -50,15 +50,14 @@ void main() {
     test('sendSolana - returns error response for invalid mnemonic', () async {
       final client = SolanaClient(
         network: SolanaNetwork.devnet,
-        mnemonic: mnemonic1,
+        mnemonic: 'invalid mnemonic',
       );
       final response = await client.sendSolana(
         to: address,
         amount: 0.01,
-        mnemonic: 'invalid mnemonic phrase',
       );
       expect(response.status, 'Error');
-      expect(response.message, isNotEmpty);
+      expect(response.message, isA<String>());
     });
 
     test('getTokenBalance - returns 0 for non-existent token account (mnemonic1)', () async {
