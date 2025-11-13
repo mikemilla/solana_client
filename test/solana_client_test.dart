@@ -53,7 +53,7 @@ void main() {
         mnemonic: mnemonic1,
       );
       final response = await client.sendSolana(
-        receiverAddress: address,
+        to: address,
         amount: 0.01,
         mnemonic: 'invalid mnemonic phrase',
       );
@@ -67,7 +67,7 @@ void main() {
         mnemonic: mnemonic1,
       );
       final balance = await client.getTokenBalance(
-        mintAddress: mintAddress,
+        tokenMint: mintAddress,
       );
       expect(balance, greaterThanOrEqualTo(0.0));
     });
@@ -78,7 +78,7 @@ void main() {
         mnemonic: mnemonic2,
       );
       final balance = await client.getTokenBalance(
-        mintAddress: mintAddress,
+        tokenMint: mintAddress,
       );
       expect(balance, greaterThanOrEqualTo(0.0));
     });
@@ -96,8 +96,8 @@ void main() {
       );
       // Sender sends 0.01 tokens to receiver's address
       final response = await client1.sendToken(
-        receiverAddress: await client2.getAddress(), // Get receiver's address
-        mintAddress: mintAddress, // Token mint address
+        tokenMint: mintAddress, // Token mint address
+        to: await client2.getAddress(), // Get receiver's address
         amount: 0.01, // Amount of token to send
       );
       // Check that transaction status is 'Done'
@@ -110,15 +110,8 @@ void main() {
         network: SolanaNetwork.devnet,
         mnemonic: mnemonic1,
       );
-      try {
-        final transactions = await client.getTokenTransactions(
-          address: address,
-        );
-        expect(transactions, isA<List<String>>());
-      } catch (e) {
-        // Network might be unavailable
-        expect(e, isA<Exception>());
-      }
+      final transactions = await client.getTokenTransactions();
+      expect(transactions, isA<List<String>>());
     });
 
     test('TransactionResponse - toString returns correct format', () {

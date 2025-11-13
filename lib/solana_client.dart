@@ -136,7 +136,7 @@ class SolanaClient {
   /// and the specified token mint. If no associated token account exists,
   /// returns 0.0.
   ///
-  /// [mintAddress] - The token mint address (base58 encoded) of the SPL token
+  /// [tokenMint] - The token mint address (base58 encoded) of the SPL token
   ///
   /// Returns the token balance as a [double], accounting for the token's
   /// decimal places.
@@ -146,17 +146,17 @@ class SolanaClient {
   /// Example:
   /// ```dart
   /// final balance = await client.getTokenbalance(
-  ///   mintAddress: 'TokenMintAddress...',
+  ///   tokenMint: 'TokenMintAddress...',
   /// );
   /// ```
   Future<double> getTokenBalance({
-    required String mintAddress,
+    required String tokenMint,
   }) async {
     try {
       // Get the wallet address and convert to public key
       final address = await getAddress();
       final walletPubkey = solana.Ed25519HDPublicKey.fromBase58(address);
-      final mintPubkey = solana.Ed25519HDPublicKey.fromBase58(mintAddress);
+      final mintPubkey = solana.Ed25519HDPublicKey.fromBase58(tokenMint);
 
       // Find the associated token account (ATA) for this wallet and token mint
       final tokenAccount = await _rpcClient.getAssociatedTokenAccount(
@@ -191,7 +191,7 @@ class SolanaClient {
   /// blockchain. The transaction is signed using the keypair derived from the
   /// client's mnemonic and waits for confirmation before returning.
   ///
-  /// [receiverAddress] - The recipient's Solana wallet address (base58 encoded)
+  /// [to] - The recipient's Solana wallet address (base58 encoded)
   /// [amount] - The amount of SOL to send (will be converted to lamports)
   /// [mnemonic] - The mnemonic seed phrase of the sender (should match the
   ///              client's mnemonic for consistency)
@@ -203,13 +203,13 @@ class SolanaClient {
   /// Example:
   /// ```dart
   /// final response = await client.sendSolana(
-  ///   receiverAddress: 'RecipientAddress...',
+  ///   to: 'RecipientAddress...',
   ///   amount: 1.5,
   ///   mnemonic: 'your mnemonic phrase',
   /// );
   /// ```
   Future<TransactionResponse> sendSolana({
-    required String receiverAddress,
+    required String to,
     required num amount,
     required String mnemonic,
   }) async {
@@ -219,7 +219,7 @@ class SolanaClient {
       final senderPubkey = senderKeypair.publicKey;
 
       // Parse the recipient's public key from base58 string
-      final recipientPubkey = solana.Ed25519HDPublicKey.fromBase58(receiverAddress);
+      final recipientPubkey = solana.Ed25519HDPublicKey.fromBase58(to);
 
       // Convert SOL amount to lamports (1 SOL = 1,000,000,000 lamports)
       final lamports = (amount * 1000000000).toInt();
@@ -261,8 +261,8 @@ class SolanaClient {
   /// 3. Creates an associated token account (ATA) for the recipient if needed
   /// 4. Transfers the tokens and waits for confirmation
   ///
-  /// [receiverAddress] - The recipient's Solana wallet address (base58 encoded)
-  /// [mintAddress] - The token mint address (base58 encoded) of the SPL token
+  /// [to] - The recipient's Solana wallet address (base58 encoded)
+  /// [tokenMint] - The token mint address (base58 encoded) of the SPL token
   /// [amount] - The amount of tokens to send (will be converted using token decimals)
   ///
   /// Returns a [TransactionResponse] containing:
@@ -272,14 +272,14 @@ class SolanaClient {
   /// Example:
   /// ```dart
   /// final response = await client.sendToken(
-  ///   receiverAddress: 'RecipientAddress...',
-  ///   mintAddress: 'TokenMintAddress...',
+  ///   to: 'RecipientAddress...',
+  ///   tokenMint: 'TokenMintAddress...',
   ///   amount: 100.0,
   /// );
   /// ```
   Future<TransactionResponse> sendToken({
-    required String receiverAddress,
-    required String mintAddress,
+    required String tokenMint,
+    required String to,
     required num amount,
   }) async {
     try {
@@ -287,8 +287,8 @@ class SolanaClient {
       final senderKeypair = await SolanaUtils.deriveKeypairFromMnemonic(mnemonic, account, change);
 
       // Parse the recipient's address and token mint address from base58 strings
-      final recipientPubkey = solana.Ed25519HDPublicKey.fromBase58(receiverAddress);
-      final mintPubkey = solana.Ed25519HDPublicKey.fromBase58(mintAddress);
+      final recipientPubkey = solana.Ed25519HDPublicKey.fromBase58(to);
+      final mintPubkey = solana.Ed25519HDPublicKey.fromBase58(tokenMint);
 
       // Fetch the token mint information to determine decimal places
       final mint = await _rpcClient.getMint(address: mintPubkey);
@@ -357,19 +357,16 @@ class SolanaClient {
   /// Example:
   /// ```dart
   /// final transactions = await client.getTokenTransactions(
-  ///   address: 'WalletAddress...',
   ///   limit: 50,
   /// );
   /// ```
   Future<List<String>> getTokenTransactions({
-    required String address,
     int limit = 100,
     String? before,
     String? until,
   }) async {
     try {
-      // Query transaction signatures for the address
-      // Note: The RPC method accepts a String address, not Ed25519HDPublicKey
+      final address = await getAddress();
       final signatures = await _rpcClient.rpcClient.getSignaturesForAddress(
         address,
         limit: limit,
