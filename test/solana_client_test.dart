@@ -2,10 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:solana_client/solana_client.dart';
 import 'package:solana_client/solana_network.dart';
 import 'package:solana_client/solana_utils.dart';
-import 'package:solana_client/transaction_response.dart';
 
 void main() {
-  // Sample seed and address for testing
+  // Sample values for testing
   final mnemonic1 = 'device bag talent edit comic adjust garbage yellow art monkey diary offer';
   final mnemonic2 = 'bracket bottom depend crater arctic toddler stool okay visit tiny shallow peace';
   const address = '6wB7LtCrKkptofNteYWGWwaLmhNNF8XMRQhppUHbcR9M';
@@ -47,17 +46,18 @@ void main() {
       expect(balance, greaterThanOrEqualTo(0.0));
     });
 
-    test('sendSolana - returns error response for invalid mnemonic', () async {
+    test('sendSolana - throws exception for invalid mnemonic', () async {
       final client = SolanaClient(
         network: SolanaNetwork.devnet,
         mnemonic: 'invalid mnemonic',
       );
-      final response = await client.sendSolana(
-        to: address,
-        amount: 0.01,
+      expect(
+        () async => await client.sendSolana(
+          to: address,
+          amount: 0.01,
+        ),
+        throwsA(isA<Exception>()),
       );
-      expect(response.status, 'Error');
-      expect(response.message, isA<String>());
     });
 
     test('getTokenBalance - returns 0 for non-existent token account (mnemonic1)', () async {
@@ -66,7 +66,7 @@ void main() {
         mnemonic: mnemonic1,
       );
       final balance = await client.getTokenBalance(
-        tokenMint: mintAddress,
+        tokenMintAddress: mintAddress,
       );
       expect(balance, greaterThanOrEqualTo(0.0));
     });
@@ -77,7 +77,7 @@ void main() {
         mnemonic: mnemonic2,
       );
       final balance = await client.getTokenBalance(
-        tokenMint: mintAddress,
+        tokenMintAddress: mintAddress,
       );
       expect(balance, greaterThanOrEqualTo(0.0));
     });
@@ -95,13 +95,12 @@ void main() {
       );
       // Sender sends 0.01 tokens to receiver's address
       final response = await client1.sendToken(
-        tokenMint: mintAddress, // Token mint address
+        tokenMintAddress: mintAddress, // Token mint address
         to: await client2.getAddress(), // Get receiver's address
         amount: 0.01, // Amount of token to send
       );
       // Check that transaction status is 'Done'
-      expect(response.status, 'Done');
-      expect(response.message, isA<String>());
+      expect(response, isA<String>());
     });
 
     test('getTokenTransactions - returns list of token transaction signatures', () async {
@@ -111,14 +110,6 @@ void main() {
       );
       final transactions = await client.getTokenTransactions();
       expect(transactions, isA<List<String>>());
-    });
-
-    test('TransactionResponse - toString returns correct format', () {
-      final response = TransactionResponse(
-        status: 'Done',
-        message: 'test_signature',
-      );
-      expect(response.toString(), '{status: Done, message: test_signature}');
     });
   });
 

@@ -1,6 +1,5 @@
 import 'package:solana_client/solana_network.dart';
 import 'package:solana_client/solana_utils.dart';
-import 'package:solana_client/transaction_response.dart';
 import 'package:solana/solana.dart' as solana;
 
 /// Main Solana client class for interacting with the Solana blockchain.
@@ -136,7 +135,7 @@ class SolanaClient {
   /// and the specified token mint. If no associated token account exists,
   /// returns 0.0.
   ///
-  /// [tokenMint] - The token mint address (base58 encoded) of the SPL token
+  /// [tokenMintAddress] - The token mint address (base58 encoded) of the SPL token
   ///
   /// Returns the token balance as a [double], accounting for the token's
   /// decimal places.
@@ -146,17 +145,17 @@ class SolanaClient {
   /// Example:
   /// ```dart
   /// final balance = await client.getTokenbalance(
-  ///   tokenMint: 'TokenMintAddress...',
+  ///   tokenMintAddress: 'TokenMintAddress...',
   /// );
   /// ```
   Future<double> getTokenBalance({
-    required String tokenMint,
+    required String tokenMintAddress,
   }) async {
     try {
       // Get the wallet address and convert to public key
       final address = await getAddress();
       final walletPubkey = solana.Ed25519HDPublicKey.fromBase58(address);
-      final mintPubkey = solana.Ed25519HDPublicKey.fromBase58(tokenMint);
+      final mintPubkey = solana.Ed25519HDPublicKey.fromBase58(tokenMintAddress);
 
       // Find the associated token account (ATA) for this wallet and token mint
       final tokenAccount = await _rpcClient.getAssociatedTokenAccount(
@@ -185,27 +184,25 @@ class SolanaClient {
     }
   }
 
-  /// Sends SOL from the wallet associated with this client to a receiver address.
+  /// Sends SOL from this wallet to the specified recipient address.
   ///
-  /// This method creates and broadcasts a transfer transaction on the Solana
-  /// blockchain. The transaction is signed using the keypair derived from the
-  /// client's mnemonic and waits for confirmation before returning.
+  /// This method creates and broadcasts a Solana transfer transaction, signed by the keypair
+  /// derived from the client's mnemonic. It will wait for the transaction to be confirmed before returning.
   ///
-  /// [to] - The recipient's Solana wallet address (base58 encoded)
-  /// [amount] - The amount of SOL to send (will be converted to lamports)
+  /// - [to]: Destination Solana wallet address (Base58 encoded).
+  /// - [amount]: Amount of SOL to send (in SOL, not lamports).
   ///
-  /// Returns a [TransactionResponse] containing:
-  /// - `status`: 'Done' on success, 'Error' on failure
-  /// - `message`: Transaction signature on success, error message on failure
+  /// Returns the transaction signature (as a [String]) if successful.
+  /// Throws an [Exception] if the transaction fails.
   ///
   /// Example:
   /// ```dart
-  /// final response = await client.sendSolana(
+  /// final signature = await client.sendSolana(
   ///   to: 'RecipientAddress...',
   ///   amount: 1.5,
   /// );
   /// ```
-  Future<TransactionResponse> sendSolana({
+  Future<String> sendSolana({
     required String to,
     required num amount,
   }) async {
@@ -231,50 +228,43 @@ class SolanaClient {
       final message = solana.Message(instructions: [instruction]);
 
       // Send the transaction and wait for confirmation
-      final signature = await _rpcClient.sendAndConfirmTransaction(
+      final txSignature = await _rpcClient.sendAndConfirmTransaction(
         message: message,
         signers: [senderKeypair],
         commitment: solana.Commitment.confirmed,
       );
 
-      return TransactionResponse(
-        status: 'Done',
-        message: signature,
-      );
+      return txSignature;
     } catch (e) {
-      return TransactionResponse(
-        status: 'Error',
-        message: e.toString(),
-      );
+      throw Exception('Error sending SOL: $e');
     }
   }
 
-  /// Sends SPL tokens from the wallet associated with this client to a receiver.
+  /// Sends SPL tokens from this wallet to a specified recipient address.
   ///
-  /// This method handles the complete token transfer process:
-  /// 1. Derives the sender's keypair from the mnemonic
-  /// 2. Retrieves token mint information (decimals)
-  /// 3. Creates an associated token account (ATA) for the recipient if needed
-  /// 4. Transfers the tokens and waits for confirmation
+  /// This method:
+  /// 1. Derives the sender's keypair from the mnemonic.
+  /// 2. Loads token mint information (to get decimals).
+  /// 3. Creates an associated token account (ATA) for the recipient if necessary.
+  /// 4. Transfers the requested token amount (in normalized units).
   ///
-  /// [to] - The recipient's Solana wallet address (base58 encoded)
-  /// [tokenMint] - The token mint address (base58 encoded) of the SPL token
-  /// [amount] - The amount of tokens to send (will be converted using token decimals)
+  /// - [tokenMintAddress]: Base58 address of the SPL token's mint.
+  /// - [to]: Recipient's Solana wallet address (Base58 encoded).
+  /// - [amount]: Amount of tokens to send (in human-readable units, will be converted to raw units by decimals).
   ///
-  /// Returns a [TransactionResponse] containing:
-  /// - `status`: 'Done' on success, 'Error' on failure
-  /// - `message`: Transaction signature on success, error message on failure
+  /// Returns the transaction signature (as a [String]) if successful.
+  /// Throws an [Exception] on error.
   ///
   /// Example:
   /// ```dart
-  /// final response = await client.sendToken(
+  /// final signature = await client.sendToken(
   ///   to: 'RecipientAddress...',
-  ///   tokenMint: 'TokenMintAddress...',
+  ///   tokenMintAddress: 'TokenMintAddress...',
   ///   amount: 100.0,
   /// );
   /// ```
-  Future<TransactionResponse> sendToken({
-    required String tokenMint,
+  Future<String> sendToken({
+    required String tokenMintAddress,
     required String to,
     required num amount,
   }) async {
@@ -284,7 +274,7 @@ class SolanaClient {
 
       // Parse the recipient's address and token mint address from base58 strings
       final recipientPubkey = solana.Ed25519HDPublicKey.fromBase58(to);
-      final mintPubkey = solana.Ed25519HDPublicKey.fromBase58(tokenMint);
+      final mintPubkey = solana.Ed25519HDPublicKey.fromBase58(tokenMintAddress);
 
       // Fetch the token mint information to determine decimal places
       final mint = await _rpcClient.getMint(address: mintPubkey);
@@ -314,7 +304,7 @@ class SolanaClient {
 
       // Execute the SPL token transfer using the extension method
       // This handles the token program instruction creation and transaction signing
-      final signature = await _rpcClient.transferSplToken(
+      final txSignature = await _rpcClient.transferSplToken(
         mint: mintPubkey,
         destination: recipientPubkey,
         amount: amountInSmallestUnit,
@@ -322,15 +312,9 @@ class SolanaClient {
         commitment: solana.Commitment.confirmed,
       );
 
-      return TransactionResponse(
-        status: 'Done',
-        message: signature,
-      );
+      return txSignature;
     } catch (e) {
-      return TransactionResponse(
-        status: 'Error',
-        message: e.toString(),
-      );
+      throw Exception('Error sending token: $e');
     }
   }
 
