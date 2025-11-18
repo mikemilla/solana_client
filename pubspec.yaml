@@ -2,6 +2,7 @@ name: solana_client
 description: "A simple client for interacting with the Solana blockchain."
 version: 0.0.5
 homepage: "https://mikemiller.design"
+repository: "https://github.com/mikemilla/solana_client"
 license: MIT
 
 environment:

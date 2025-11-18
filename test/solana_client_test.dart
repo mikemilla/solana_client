@@ -4,7 +4,7 @@ import 'package:solana_client/solana_network.dart';
 import 'package:solana_client/solana_utils.dart';
 
 void main() {
-  // Sample values for testing
+  // Sample seed and address for testing
   final mnemonic1 = 'device bag talent edit comic adjust garbage yellow art monkey diary offer';
   final mnemonic2 = 'bracket bottom depend crater arctic toddler stool okay visit tiny shallow peace';
   const address = '6wB7LtCrKkptofNteYWGWwaLmhNNF8XMRQhppUHbcR9M';
@@ -46,18 +46,16 @@ void main() {
       expect(balance, greaterThanOrEqualTo(0.0));
     });
 
-    test('sendSolana - throws exception for invalid mnemonic', () async {
+    test('sendSolana - returns error response for invalid mnemonic', () async {
       final client = SolanaClient(
         network: SolanaNetwork.devnet,
         mnemonic: 'invalid mnemonic',
       );
-      expect(
-        () async => await client.sendSolana(
-          to: address,
-          amount: 0.01,
-        ),
-        throwsA(isA<Exception>()),
+      final response = await client.sendSolana(
+        to: address,
+        amount: 0.01,
       );
+      expect(response, isA<String>());
     });
 
     test('getTokenBalance - returns 0 for non-existent token account (mnemonic1)', () async {
